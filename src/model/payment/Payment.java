@@ -37,10 +37,10 @@ public class Payment implements PaymentMethod {
 
     @Override
     public boolean processPayment(double amount) {
-        if (amount <= 0) {
+        if (status != PaymentStatus.PENDING || !Double.isFinite(amount) || amount <= 0
+                || Double.compare(amount, this.amount) != 0) {
             return false;
         }
-        this.amount = amount;
         this.status = PaymentStatus.PAID;
         this.paymentDate = LocalDateTime.now();
         return true;

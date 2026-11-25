@@ -36,11 +36,12 @@ public class AppController {
             new PaymentService(parcelManager);
 
     private final UserService userService = new UserService(userManager);
-    private final ParcelService parcelService = new ParcelService(parcelManager);
+    private final ParcelService parcelService =
+            new ParcelService(parcelManager, branchManager, userManager);
     private final BranchService branchService = new BranchService(branchManager);
     private final DeliveryService deliveryService =
             new DeliveryService(deliveryManager, trackingService,
-                    parcelManager, userManager);
+                    parcelManager, userManager, paymentService, branchManager);
     private final ReportManager reportManager =
             new ReportManager(parcelManager, paymentService, userManager);
     private final DataLoader dataLoader = new DataLoader();

@@ -86,7 +86,10 @@ public class AdminMenu {
         String username = InputValidator.readRequiredString(scanner, "Username: ");
         String password = InputValidator.readRequiredString(scanner, "Password: ");
         String branchId = InputValidator.readRequiredString(scanner, "Branch ID: ");
-        branchService.getBranchById(branchId);
+        Branch branch = branchService.getBranchById(branchId);
+        if (!branch.isActive()) {
+            throw new RecordNotFoundException("Branch is inactive.");
+        }
         DeliveryAgent agent = userService.registerAgent(name, phone, email,
                 username, password, branchId);
         System.out.println("Agent registered with ID: " + agent.getId());

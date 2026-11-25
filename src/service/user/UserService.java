@@ -7,6 +7,7 @@ import model.user.Customer;
 import model.user.DeliveryAgent;
 import model.user.Person;
 import utility.IDGenerator;
+import utility.InputValidator;
 
 public class UserService {
     private final UserManager userManager;
@@ -18,6 +19,12 @@ public class UserService {
     public Customer registerCustomer(String name, String phone, String email,
                                      String username, String password, String address)
             throws DuplicateIdException {
+        name = InputValidator.validateStoredText(name, "Name");
+        phone = InputValidator.validateStoredText(phone, "Phone");
+        email = InputValidator.validateStoredText(email, "Email");
+        username = InputValidator.validateStoredText(username, "Username");
+        password = InputValidator.validateStoredText(password, "Password");
+        address = InputValidator.validateStoredText(address, "Address");
         Customer existing = userManager.findCustomerByUsername(username);
         if (existing != null) {
             throw new DuplicateIdException("Username already exists.");
@@ -53,6 +60,12 @@ public class UserService {
     public DeliveryAgent registerAgent(String name, String phone, String email,
                                        String username, String password, String branchId)
             throws DuplicateIdException {
+        name = InputValidator.validateStoredText(name, "Name");
+        phone = InputValidator.validateStoredText(phone, "Phone");
+        email = InputValidator.validateStoredText(email, "Email");
+        username = InputValidator.validateStoredText(username, "Username");
+        password = InputValidator.validateStoredText(password, "Password");
+        branchId = InputValidator.validateStoredText(branchId, "Branch ID");
         if (userManager.findAgentByUsername(username) != null) {
             throw new DuplicateIdException("Agent username already exists.");
         }
@@ -73,9 +86,9 @@ public class UserService {
 
     public void updateCustomerProfile(Customer customer, String name, String phone,
                                       String email, String address) {
-        customer.setName(name);
-        customer.setPhone(phone);
-        customer.setEmail(email);
-        customer.setAddress(address);
+        customer.setName(InputValidator.validateStoredText(name, "Name"));
+        customer.setPhone(InputValidator.validateStoredText(phone, "Phone"));
+        customer.setEmail(InputValidator.validateStoredText(email, "Email"));
+        customer.setAddress(InputValidator.validateStoredText(address, "Address"));
     }
 }

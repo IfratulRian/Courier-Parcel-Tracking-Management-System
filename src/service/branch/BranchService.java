@@ -4,6 +4,7 @@ import exception.DuplicateIdException;
 import exception.RecordNotFoundException;
 import model.branch.Branch;
 import utility.IDGenerator;
+import utility.InputValidator;
 import java.util.List;
 
 public class BranchService {
@@ -15,6 +16,10 @@ public class BranchService {
 
     public Branch registerBranch(String name, String address, String city, String phone)
             throws DuplicateIdException {
+        name = InputValidator.validateStoredText(name, "Branch name");
+        address = InputValidator.validateStoredText(address, "Branch address");
+        city = InputValidator.validateStoredText(city, "Branch city");
+        phone = InputValidator.validateStoredText(phone, "Branch phone");
         String id = IDGenerator.generateBranchId();
         for (Branch branch : branchManager.getBranches()) {
             if (branch.getName().equalsIgnoreCase(name) && branch.getCity().equalsIgnoreCase(city)) {

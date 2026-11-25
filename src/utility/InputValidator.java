@@ -40,4 +40,15 @@ public class InputValidator {
             System.out.println("This field cannot be empty.");
         }
     }
+
+    public static String validateStoredText(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " is required.");
+        }
+        if (value.indexOf('|') >= 0 || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException(fieldName
+                    + " cannot contain | or line breaks.");
+        }
+        return value.trim();
+    }
 }

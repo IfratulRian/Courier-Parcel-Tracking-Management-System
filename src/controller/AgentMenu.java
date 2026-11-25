@@ -1,6 +1,7 @@
 package controller;
 
 import exception.InvalidStatusException;
+import exception.InvalidPaymentException;
 import exception.RecordNotFoundException;
 import model.parcel.Parcel;
 import model.parcel.ParcelStatus;
@@ -61,7 +62,7 @@ public class AgentMenu {
     }
 
     private void updateStatus()
-            throws InvalidStatusException, RecordNotFoundException {
+            throws InvalidStatusException, RecordNotFoundException, InvalidPaymentException {
         System.out.println("Enter the parcel's tracking ID, then select its next valid status.");
         String trackingId = InputValidator.readRequiredString(scanner, "Tracking ID: ");
         System.out.println("1=PICKED_UP 2=IN_TRANSIT 3=ARRIVED_AT_HUB");

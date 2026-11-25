@@ -4,6 +4,7 @@ import exception.InvalidStatusException;
 import model.parcel.Parcel;
 import model.parcel.ParcelStatus;
 import model.parcel.TrackingRecord;
+import utility.InputValidator;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,6 +42,9 @@ public class TrackingService {
     public boolean updateStatus(String trackingId, ParcelStatus newStatus,
                                 String agentId, String branchId, String comment)
             throws InvalidStatusException {
+        if (comment != null && !comment.isEmpty()) {
+            comment = InputValidator.validateStoredText(comment, "Tracking comment");
+        }
         Parcel parcel = parcelManager.findByTrackingId(trackingId);
         if (parcel == null) {
             throw new InvalidStatusException("Parcel not found.");

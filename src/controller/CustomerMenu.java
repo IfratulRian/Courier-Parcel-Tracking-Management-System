@@ -83,11 +83,14 @@ public class CustomerMenu {
         }
         System.out.println("Delivery zones are distance bands: 1 is nearest, 5 is farthest.");
         int zone = InputValidator.readInt(scanner, "Enter delivery zone (1-5): ");
-        System.out.println("Available branches:");
-        if (branchService.getAllBranches().isEmpty()) {
-            throw new RecordNotFoundException("At least one branch is required.");
+        System.out.println("Available active branches:");
+        List<model.branch.Branch> activeBranches = branchService.getAllBranches().stream()
+                .filter(model.branch.Branch::isActive)
+                .collect(java.util.stream.Collectors.toList());
+        if (activeBranches.isEmpty()) {
+            throw new RecordNotFoundException("At least one active branch is required.");
         }
-        branchService.getAllBranches().forEach(System.out::println);
+        activeBranches.forEach(System.out::println);
         String originId = InputValidator.readRequiredString(scanner, "Origin branch ID: ");
         String destinationId = InputValidator.readRequiredString(scanner, "Destination branch ID: ");
         branchService.getBranchById(originId);
@@ -101,6 +104,13 @@ public class CustomerMenu {
         ParcelCategory category = categoryChoice.equals("2")
                 ? ParcelCategory.EXPRESS : ParcelCategory.STANDARD;
 
+        System.out.println("Payment: 1=Prepaid (pay now in this demo), 2=Cash on Delivery.");
+        System.out.print("Payment choice (1-2): ");
+        String paymentChoice = scanner.nextLine().trim();
+        if (!paymentChoice.equals("1") && !paymentChoice.equals("2")) {
+            throw new InvalidParcelException("Choose 1 for Prepaid or 2 for Cash on Delivery.");
+        }
+
         Parcel parcel = parcelService.createParcel(customer.getId(), receiverName,
                 receiverPhone, receiverAddress, weight, zone,
                 originId, destinationId, category);
@@ -109,15 +119,12 @@ public class CustomerMenu {
         System.out.println("Tracking ID: " + parcel.getTrackingId());
         System.out.println("Calculated charge: " +
                 String.format("%.2f", parcel.calculateCharge()));
-        System.out.println("Payment: 1=Prepaid (pay now in this demo), 2=Cash on Delivery.");
-        System.out.print("Payment choice (1-2): ");
-        String paymentChoice = scanner.nextLine().trim();
-        if (!paymentChoice.equals("1") && !paymentChoice.equals("2")) {
-            throw new InvalidParcelException("Choose 1 for Prepaid or 2 for Cash on Delivery.");
-        }
         String method = paymentChoice.equals("2") ? "COD" : "PREPAID";
         try {
             Payment payment = paymentService.createPayment(parcel.getTrackingId(), method);
+            if (method.equals("PREPAID")) {
+                paymentService.processPrepaidPayment(parcel.getTrackingId());
+            }
             System.out.println("Payment created. Receipt: " + payment.getReceiptNumber());
         } catch (InvalidPaymentException exception) {
             throw new InvalidParcelException(exception.getMessage());
@@ -152,24 +159,34 @@ public class CustomerMenu {
     }
 
     private void cancelParcel()
-            throws InvalidParcelException, RecordNotFoundException {
+            throws InvalidParcelException, RecordNotFoundException, InvalidPaymentException {
         String trackingId = InputValidator.readRequiredString(scanner, "Tracking ID: ");
         Parcel parcel = parcelService.getParcelByTrackingId(trackingId);
         if (!parcel.getSenderId().equals(customer.getId())) {
-            throw new InvalidParcelException("You can cancel only your own parcel.");
+            throw new RecordNotFoundException("Parcel not found for your account.");
         }
-        parcelService.cancelParcel(trackingId);
+        paymentService.validateCanCancel(trackingId);
+        parcelService.cancelParcel(trackingId, customer.getId());
+        paymentService.cancelPayment(trackingId);
         System.out.println("Parcel cancelled.");
     }
 
     private void viewPayment() throws RecordNotFoundException {
         String trackingId = InputValidator.readRequiredString(scanner, "Tracking ID: ");
+        Parcel parcel = parcelService.getParcelByTrackingId(trackingId);
+        if (!parcel.getSenderId().equals(customer.getId())) {
+            throw new RecordNotFoundException("Payment not found for your account.");
+        }
         System.out.println(paymentService.generateReceipt(trackingId));
     }
 
     private void processPrepaid()
             throws RecordNotFoundException, InvalidPaymentException {
         String trackingId = InputValidator.readRequiredString(scanner, "Tracking ID: ");
+        Parcel parcel = parcelService.getParcelByTrackingId(trackingId);
+        if (!parcel.getSenderId().equals(customer.getId())) {
+            throw new RecordNotFoundException("Payment not found for your account.");
+        }
         if (paymentService.processPrepaidPayment(trackingId)) {
             System.out.println("Payment marked as PAID.");
         }

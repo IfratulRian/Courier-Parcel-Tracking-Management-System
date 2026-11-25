@@ -24,11 +24,13 @@ A beginner-friendly, console-based Java application for booking parcels, trackin
 - Customer registration, login, and profile updates.
 - Parcel booking with generated tracking IDs, receiver details, parcel weight, delivery zone, and Standard or Express category.
 - Parcel charge calculation based on category, weight, and zone.
-- Parcel lookup, tracking history, and cancellation before the parcel enters transit.
+- Parcel lookup, chronological tracking history, and cancellation before the parcel enters transit.
 - Branch registration and agent registration/removal (removal deactivates the agent).
-- Parcel assignment to active agents and agent status updates.
-- Prepaid and Cash on Delivery payment records with simple receipts.
-- Basic parcel, revenue, and agent performance reports.
+- Parcel assignment to active agents; agents can update only parcels assigned to them.
+- Prepaid payments are simulated at booking; Cash on Delivery is collected when delivery is confirmed.
+- Cancellation changes pending payments to failed and marks completed prepaid payments as refunded.
+- Parcel, zone, service-category, revenue, and delivery-agent performance reports.
+- Validation for stored text fields, finite parcel weights/charges, valid branches, and status transitions.
 - Text-file persistence for users, branches, parcels, payments, and tracking history.
 
 ## Requirements
@@ -68,7 +70,7 @@ The program is text-based: its interface appears in the IDE's Run panel or termi
 3. In the customer menu, enter `1` to book a parcel.
 4. Enter receiver information, weight in kilograms, and a zone from `1` to `5`.
 5. Select an origin and destination branch from the displayed branch list. A default `Main Office` branch is created if no branches are loaded.
-6. Select Standard or Express, then select prepaid or Cash on Delivery.
+6. Select Standard or Express, then select prepaid or Cash on Delivery. Prepaid is marked paid in the demo; COD is marked paid after an agent confirms delivery.
 7. Save the displayed tracking ID. Use customer menu option `3` to look up that parcel.
 8. Use option `8` in the customer menu to log out. At the main menu, choose `5` to save data and exit.
 
@@ -148,7 +150,7 @@ Menus collect console input and call services. They are not meant to be the sour
 | `PaymentMethod` | `model.payment` | Interface for naming and processing a payment method. |
 | `PrepaidPayment` | `model.payment` | Identifies a prepaid payment and starts it as pending. |
 | `CODPayment` | `model.payment` | Identifies a Cash on Delivery payment and starts it as pending. |
-| `PaymentStatus` | `model.payment` | Enumerates `PENDING`, `PAID`, and `FAILED`. |
+| `PaymentStatus` | `model.payment` | Enumerates `PENDING`, `PAID`, `FAILED`, and `REFUNDED`. |
 
 ### Services and managers
 
@@ -163,22 +165,22 @@ Menus collect console input and call services. They are not meant to be the sour
 | `BranchManager` | `service.branch` | Holds branches in memory and looks them up by ID. |
 | `DeliveryService` | `service.delivery` | Checks parcel and active agent before assignment; routes status updates to `TrackingService`. |
 | `DeliveryManager` | `service.delivery` | Assigns parcels and lists parcels assigned to an agent. |
-| `PaymentService` | `service.payment` | Creates payment records, marks prepaid/COD payments paid, and builds receipts. |
-| `ReportManager` | `service.report` | Counts parcel statuses, totals paid revenue, and prints basic agent performance. |
+| `PaymentService` | `service.payment` | Creates payment records, enforces prepaid/COD lifecycle rules, handles cancellation/refunds, and builds receipts. |
+| `ReportManager` | `service.report` | Summarizes statuses, zones, service categories, payment-method revenue, and agent delivery outcomes. |
 
 ### File handling, exceptions, and utilities
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `FileManager` | `filehandling` | Reads and writes UTF-8 text files, creating parent directories when writing. |
-| `DataLoader` | `filehandling` | Converts saved text rows to model objects at startup and serializes current objects on exit. |
+| `FileManager` | `filehandling` | Reads and writes UTF-8 text files, atomically replacing each file on save and surfacing I/O failures. |
+| `DataLoader` | `filehandling` | Validates saved row shapes/references, restores model objects and ID sequence state at startup, and serializes current objects on exit. |
 | `InvalidParcelException` | `exception` | Reports invalid parcel details or operations. |
 | `InvalidStatusException` | `exception` | Reports missing parcels or disallowed status changes. |
 | `InvalidPaymentException` | `exception` | Reports invalid or duplicate payment actions. |
 | `DuplicateIdException` | `exception` | Reports duplicate user/branch registration details. |
 | `RecordNotFoundException` | `exception` | Reports a missing user, branch, parcel, or payment. |
 | `InputValidator` | `utility` | Reads required text and retries invalid integer/decimal input. |
-| `IDGenerator` | `utility` | Generates tracking, user, branch, and payment IDs using a shared static counter. |
+| `IDGenerator` | `utility` | Generates tracking, user, branch, and payment IDs using a shared counter that resumes beyond loaded IDs. |
 | `DateTimeUtility` | `utility` | Formats and parses date/time values used for display and storage. |
 
 ## OOP concepts demonstrated
@@ -231,7 +233,7 @@ Runtime data is stored in the `data/` directory, relative to the application's w
 | `payments.txt` | Payment details, status, date, and receipt number. |
 | `agents.txt` | Currently unused; agent records are stored in `users.txt`. |
 
-Rows use `|` between fields. The application loads data at startup and saves when the user chooses **Save data and exit**. To avoid losing changes, exit through the menu rather than stopping the program abruptly. The `data/*.txt` files are ignored by Git so local records are not published with source code.
+Rows use `|` between fields, so persisted text values cannot contain that delimiter or line breaks. The application loads data at startup and saves when the user chooses **Save data and exit**. Each data file is replaced atomically; exit through the menu to save the complete current session. Malformed rows, broken parcel references, and file read/write errors are reported rather than silently ignored. The `data/*.txt` files are ignored by Git so local records are not published with source code.
 
 ## Known limitations
 
