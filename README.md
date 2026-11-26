@@ -10,6 +10,9 @@ A beginner-friendly, console-based Java application for booking parcels, trackin
 - [Requirements](#requirements)
 - [Run the application](#run-the-application)
 - [First-time walkthrough](#first-time-walkthrough)
+- [Complete end-to-end workflow](#complete-end-to-end-workflow)
+- [How the project achieves its objectives](#how-the-project-achieves-its-objectives)
+- [Important UML class diagram](#important-uml-class-diagram)
 - [Administrator login](#administrator-login)
 - [Project structure](#project-structure)
 - [Class responsibilities](#class-responsibilities)
@@ -76,6 +79,358 @@ The program is text-based: its interface appears in the IDE's Run panel or termi
 8. Use option `8` in the customer menu to log out. At the main menu, choose `5` to save data and exit.
 
 To try the administrator workflow, log in with the demo credentials below. Register an agent only after confirming that a branch exists. An agent can then log in and view parcels assigned to them.
+
+## Complete end-to-end workflow
+
+The complete parcel process is handled through role-based console menus. The application keeps users, branches, parcels, payments, and tracking history in memory while running and saves them to text files when the user exits through `Save data and exit`.
+
+### 1. Application startup
+
+1. `Main` starts `AppController`.
+2. `DataLoader` loads existing users, branches, parcels, payments, and tracking records.
+3. If no branch exists, `AppController` creates a default active branch named `Main Office`.
+4. `MainMenu` displays the available customer, administrator, and delivery-agent actions.
+
+### 2. Account and access setup
+
+- A **customer** registers a name, phone, email, username, password, and address. The account becomes available for login immediately.
+- An **administrator** logs in using the fixed demo credentials `admin / admin123`.
+- The administrator registers branches and delivery agents. An agent must belong to an existing active branch.
+- A **delivery agent** logs in and receives only the parcels assigned to their account.
+
+Role separation is enforced in the menu and service layers: customers can access only their own parcels and payments, agents can update only assigned parcels, and administrator actions are available only after administrator login.
+
+### 3. Parcel booking
+
+1. The customer selects `Book a parcel`.
+2. The system collects receiver name, phone, address, weight, zone, origin branch, destination branch, and parcel category.
+3. `ParcelService` validates that:
+   - the sender is an active customer;
+   - the weight is a finite positive number;
+   - the zone is from `1` to `5`;
+   - both branches exist and are active;
+   - the parcel category and receiver details are valid.
+4. The system creates a `StandardParcel` or `ExpressParcel`, calculates the charge, and assigns a unique tracking ID.
+5. The initial `BOOKED` status is recorded in chronological tracking history with the origin branch and a booking comment.
+
+The charge is calculated by the selected parcel category using weight and zone. Standard and Express parcels implement the charge calculation through their own classes.
+
+### 4. Payment selection
+
+The customer chooses one of two simulated payment methods:
+
+- **Prepaid:** the payment record is created and marked `PAID` in the demo.
+- **Cash on Delivery (COD):** the payment record remains `PENDING` until the parcel is delivered.
+
+`PaymentService` allows only one payment per parcel and exposes a receipt containing the receipt number, tracking ID, method, amount, and status.
+
+### 5. Administrator processing and assignment
+
+1. The administrator views branches and registered agents.
+2. The parcel is assigned to an active agent whose home branch exists and is active.
+3. Completed parcels cannot be assigned or reassigned.
+4. The assigned agent and parcel ID are stored in the parcel record.
+
+### 6. Delivery processing
+
+The assigned agent selects `Update one of your assigned parcels` and chooses a valid next status.
+
+The supported processing sequence is:
+
+```text
+BOOKED -> PICKED_UP -> IN_TRANSIT -> ARRIVED_AT_HUB
+       -> OUT_FOR_DELIVERY -> DELIVERED
+```
+
+An agent can also mark an eligible parcel `RETURNED`. The customer can cancel only a `BOOKED` or `PICKED_UP` parcel.
+
+Before changing status, `TrackingService` checks the transition table and `DeliveryService` verifies that:
+
+- the parcel exists;
+- the agent is active;
+- the parcel is assigned to that agent;
+- the agent's branch is active;
+- the status transition is valid.
+
+Every successful change creates a timestamped `TrackingRecord` containing the old status, new status, branch, agent ID, and comment. This provides the chronological tracking history shown to customers and assigned agents.
+
+### 7. Delivery and COD collection
+
+1. The agent updates the parcel to `DELIVERED`.
+2. `PaymentService` validates the payment state before delivery is accepted.
+3. For prepaid parcels, the payment must already be `PAID`.
+4. For COD parcels, payment must be `PENDING` and is marked `PAID` automatically when delivery is confirmed.
+5. The final delivery status and payment state are saved in the parcel and payment records.
+
+### 8. Cancellation or return
+
+- A customer can cancel a parcel only if it belongs to the customer and is in `BOOKED` or `PICKED_UP`.
+- Cancellation adds a `CANCELLED` tracking record and changes the parcel to a terminal status.
+- Pending COD/payment records are changed to `FAILED`.
+- Completed prepaid payments are changed to `REFUNDED`.
+- An agent can mark eligible transit states as `RETURNED`; `RETURNED` is terminal and cannot progress further.
+
+### 9. Tracking, receipts, and reports
+
+Customers can:
+
+- list their own parcels;
+- view current status;
+- view complete chronological tracking history;
+- view their own payment receipt;
+- cancel eligible parcels.
+
+Administrators can:
+
+- list all parcels;
+- view receipts;
+- view parcel status totals;
+- view Standard/Express and zone totals;
+- view prepaid, COD, and total collected revenue;
+- view agent assignment and delivery outcomes.
+
+### 10. Save and reload
+
+At the end of a session, choosing `Save data and exit` writes all in-memory changes to the text files under `data/`. At the next startup, `DataLoader` restores them. Malformed records and file errors are reported instead of silently converting them into successful operation.
+
+## How the project achieves its objectives
+
+| Project objective | Implementation | Result |
+|---|---|---|
+| Streamline parcel booking | `CustomerMenu.createParcel()` collects all booking details; `ParcelService.createParcel()` performs validation and creates either a Standard or Express parcel. | A customer receives a tracking ID and charge for a valid booking. |
+| Support parcel processing | `AdminMenu.assignParcel()` assigns active agents and `DeliveryService.updateParcelStatus()` processes valid status changes. | Parcels move through controlled operational stages rather than changing status freely. |
+| Manage delivery | `AgentMenu.updateStatus()` lets assigned agents update assigned parcels; delivery is limited to a valid `OUT_FOR_DELIVERY -> DELIVERED` transition. | Only authorized agents can deliver parcels assigned to them. |
+| Provide chronological tracking | `TrackingService.updateStatus()` creates `TrackingRecord` entries for every valid change. | Customers and agents can inspect the parcel's history and status. |
+| Manage branches and agents | `BranchService` and `UserService` register and deactivate operational accounts and branches. | Operations are organized around active branch locations and active delivery personnel. |
+| Calculate charges consistently | `StandardParcel` and `ExpressParcel` implement category-specific charge logic using weight and zone. | Valid bookings receive a deterministic, visible charge. |
+| Record prepaid and COD payments | `PaymentService` creates one payment per parcel and applies paid, pending, failed, and refunded states. | Both payment models follow separate lifecycle rules and provide receipts. |
+| Support cancellation and return | `ParcelService.cancelParcel()` and `TrackingService` enforce eligible states and terminal status behavior. | Parcels cannot be cancelled or moved illegally after delivery processing has progressed too far. |
+| Produce operational reports | `ReportManager` summarizes status, category, zone, revenue, and agent outcomes. | Administrators can review overall parcel and agent activity. |
+| Preserve data between runs | `DataLoader` and `FileManager` load and atomically save text records. | Normal application exits preserve users, branches, parcels, payments, and history. |
+| Protect role and data integrity | Services check ownership, active states, duplicate payments, and allowed status transitions and throw project-specific exceptions. | Invalid actions are rejected and menus show clear errors instead of silently corrupting state. |
+
+## Important UML class diagram
+
+This diagram summarizes the project's main structure without listing every validation, exception, manager, and utility class. It shows the important inheritance, composition, association, controller, service, and persistence relationships.
+
+### Rendered diagram
+
+![Courier and Parcel Tracking System UML class diagram](./docs/courier-system-uml.svg)
+
+If an SVG image is not displayed by your Markdown viewer, open the [standalone Mermaid source](./docs/courier-system-uml.mmd) or use the Mermaid diagram below.
+
+```mermaid
+classDiagram
+    direction LR
+
+    class AppController {
+        +start()
+        +adminLogin()
+        +customerLogin()
+        +agentLogin()
+        +exit()
+    }
+
+    class MainMenu {
+        +show()
+    }
+    class AdminMenu {
+        +show()
+        -assignParcel()
+        -showReports()
+    }
+    class CustomerMenu {
+        +show()
+        -createParcel()
+        -trackParcel()
+        -cancelParcel()
+    }
+    class AgentMenu {
+        +show()
+        -updateStatus()
+        -viewAssigned()
+    }
+
+    class Person {
+        <<abstract>>
+        -id
+        -name
+        -password
+        -active
+        -active
+        +getRole()
+    }
+    class Admin
+    class Customer {
+        -address
+    }
+    class DeliveryAgent {
+        -branchId
+    }
+    Person <|-- Admin
+    Person <|-- Customer
+    Person <|-- DeliveryAgent
+
+    class Branch {
+        -id
+        -name
+        -city
+        -active
+    }
+    class Parcel {
+        <<abstract>>
+        -trackingId
+        -senderId
+        -receiverName
+        -weight
+        -zone
+        -status
+        +calculateCharge()
+    }
+    class StandardParcel {
+        +calculateCharge()
+    }
+    class ExpressParcel {
+        +calculateCharge()
+    }
+    class TrackingRecord {
+        -oldStatus
+        -newStatus
+        -dateTime
+        -agentId
+        -comment
+    }
+    class ParcelStatus {
+        <<enumeration>>
+        BOOKED
+        PICKED_UP
+        IN_TRANSIT
+        ARRIVED_AT_HUB
+        OUT_FOR_DELIVERY
+        DELIVERED
+        CANCELLED
+        RETURNED
+    }
+    Parcel <|-- StandardParcel
+    Parcel <|-- ExpressParcel
+    Parcel "1" *-- "0..*" TrackingRecord : trackingHistory
+    Parcel --> ParcelStatus
+
+    class Payment {
+        -paymentId
+        -trackingId
+        -amount
+        -status
+        -receiptNumber
+        +processPayment()
+    }
+    class PrepaidPayment
+    class CODPayment
+    class PaymentStatus {
+        <<enumeration>>
+        PENDING
+        PAID
+        FAILED
+        REFUNDED
+    }
+    Payment <|-- PrepaidPayment
+    Payment <|-- CODPayment
+    Payment --> PaymentStatus
+
+    class UserService {
+        +registerCustomer()
+        +loginCustomer()
+        +loginAgent()
+    }
+    class BranchService {
+        +registerBranch()
+        +getBranchById()
+    }
+    class ParcelService {
+        +createParcel()
+        +cancelParcel()
+        +getCustomerParcels()
+    }
+    class TrackingService {
+        +isValidTransition()
+        +updateStatus()
+    }
+    class DeliveryService {
+        +assignParcel()
+        +updateParcelStatus()
+        +getAssignedParcels()
+    }
+    class PaymentService {
+        +createPayment()
+        +processPrepaidPayment()
+        +processCODPayment()
+        +cancelPayment()
+        +generateReceipt()
+    }
+    class ReportManager {
+        +printSummary()
+        +printAgentPerformanceReport()
+    }
+
+    class ParcelManager
+    class UserManager
+    class BranchManager
+    class DeliveryManager
+    class DataLoader {
+        +loadAll()
+        +saveAll()
+    }
+    class FileManager
+
+    AppController --> MainMenu
+    AppController --> AdminMenu
+    AppController --> CustomerMenu
+    AppController --> AgentMenu
+    AppController --> DataLoader
+    AdminMenu --> UserService
+    AdminMenu --> BranchService
+    AdminMenu --> DeliveryService
+    AdminMenu --> ReportManager
+    CustomerMenu --> ParcelService
+    CustomerMenu --> TrackingService
+    CustomerMenu --> PaymentService
+    AgentMenu --> DeliveryService
+
+    ParcelService --> ParcelManager
+    ParcelService --> BranchManager
+    ParcelService --> UserManager
+    TrackingService --> ParcelManager
+    DeliveryService --> DeliveryManager
+    DeliveryService --> TrackingService
+    DeliveryService --> PaymentService
+    ReportManager --> ParcelManager
+    ReportManager --> PaymentService
+    ReportManager --> UserManager
+    UserService --> UserManager
+    BranchService --> BranchManager
+
+    DataLoader --> ParcelManager
+    DataLoader --> UserManager
+    DataLoader --> BranchManager
+    DataLoader --> PaymentService
+    DataLoader --> FileManager
+
+    Customer "1" -- "0..*" Parcel : books
+    DeliveryAgent "1" -- "0..*" Parcel : assigned to
+    Branch "1" -- "0..*" Parcel : origin and destination
+    Parcel "1" -- "0..1" Payment : has
+    DeliveryAgent "1" --> "1" Branch : belongs to
+```
+
+### UML diagram relationship summary
+
+- `Person` is the abstract base for `Admin`, `Customer`, and `DeliveryAgent`.
+- `Parcel` is the abstract base for `StandardParcel` and `ExpressParcel`.
+- `Payment` is the base for `PrepaidPayment` and `CODPayment`.
+- `Parcel` owns its `TrackingRecord` history as composition.
+- A customer may book multiple parcels, an active agent may be assigned multiple parcels, and a parcel has at most one payment record.
+- `AppController` initializes and connects the menus, services, managers, and persistence layer.
+- The managers hold in-memory collections, while `DataLoader` and `FileManager` provide text-file persistence.
 
 ## Administrator login
 

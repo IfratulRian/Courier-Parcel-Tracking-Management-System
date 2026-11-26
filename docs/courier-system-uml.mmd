@@ -1,0 +1,169 @@
+classDiagram
+    direction LR
+
+    class AppController {
+        +start()
+        +adminLogin()
+        +customerLogin()
+        +agentLogin()
+        +exit()
+    }
+
+    class MainMenu {
+        +show()
+    }
+    class AdminMenu {
+        +show()
+        -assignParcel()
+        -showReports()
+    }
+    class CustomerMenu {
+        +show()
+        -createParcel()
+        -trackParcel()
+        -cancelParcel()
+    }
+    class AgentMenu {
+        +show()
+        -updateStatus()
+        -viewAssigned()
+    }
+
+    class Person {
+        <<abstract>>
+        -id
+        -name
+        -username
+        -active
+        +getRole()
+    }
+    class Admin
+    class Customer {
+        -address
+    }
+    class DeliveryAgent {
+        -branchId
+    }
+    Person <|-- Admin
+    Person <|-- Customer
+    Person <|-- DeliveryAgent
+
+    class Branch {
+        -id
+        -name
+        -city
+        -active
+    }
+
+    class Parcel {
+        <<abstract>>
+        -trackingId
+        -senderId
+        -receiverName
+        -weight
+        -zone
+        -status
+        +calculateCharge()
+    }
+    class StandardParcel {
+        +calculateCharge()
+    }
+    class ExpressParcel {
+        +calculateCharge()
+    }
+    class TrackingRecord {
+        -oldStatus
+        -newStatus
+        -dateTime
+        -agentId
+        -comment
+    }
+    class ParcelStatus {
+        <<enumeration>>
+        BOOKED
+        PICKED_UP
+        IN_TRANSIT
+        ARRIVED_AT_HUB
+        OUT_FOR_DELIVERY
+        DELIVERED
+        CANCELLED
+        RETURNED
+    }
+    Parcel <|-- StandardParcel
+    Parcel <|-- ExpressParcel
+    Parcel "1" *-- "0..*" TrackingRecord : trackingHistory
+    Parcel --> ParcelStatus
+
+    class Payment {
+        -paymentId
+        -trackingId
+        -amount
+        -status
+        -receiptNumber
+        +processPayment()
+    }
+    class PrepaidPayment
+    class CODPayment
+    class PaymentStatus {
+        <<enumeration>>
+        PENDING
+        PAID
+        FAILED
+        REFUNDED
+    }
+    Payment <|-- PrepaidPayment
+    Payment <|-- CODPayment
+    Payment --> PaymentStatus
+
+    class UserService
+    class BranchService
+    class ParcelService
+    class TrackingService
+    class DeliveryService
+    class PaymentService
+    class ReportManager
+
+    class ParcelManager
+    class UserManager
+    class BranchManager
+    class DeliveryManager
+    class DataLoader
+    class FileManager
+
+    AppController --> MainMenu
+    AppController --> AdminMenu
+    AppController --> CustomerMenu
+    AppController --> AgentMenu
+    AppController --> DataLoader
+
+    AdminMenu --> UserService
+    AdminMenu --> BranchService
+    AdminMenu --> DeliveryService
+    AdminMenu --> ReportManager
+    CustomerMenu --> ParcelService
+    CustomerMenu --> TrackingService
+    CustomerMenu --> PaymentService
+    AgentMenu --> DeliveryService
+
+    ParcelService --> ParcelManager
+    TrackingService --> ParcelManager
+    DeliveryService --> DeliveryManager
+    DeliveryService --> TrackingService
+    DeliveryService --> PaymentService
+    PaymentService --> ParcelManager
+    ReportManager --> ParcelManager
+    ReportManager --> PaymentService
+    UserService --> UserManager
+    BranchService --> BranchManager
+
+    DataLoader --> FileManager
+    DataLoader --> UserManager
+    DataLoader --> BranchManager
+    DataLoader --> ParcelManager
+    DataLoader --> PaymentService
+
+    Customer "1" -- "0..*" Parcel : books
+    DeliveryAgent "1" -- "0..*" Parcel : assigned to
+    Branch "1" -- "0..*" Parcel : origin and destination
+    DeliveryAgent "1" --> "1" Branch : belongs to
+    Parcel "1" -- "0..1" Payment : has

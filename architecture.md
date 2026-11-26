@@ -13,6 +13,104 @@ main.Main
        └── filehandling.DataLoader ──> filehandling.FileManager ──> data/*.txt
 ```
 
+## Important UML class diagram
+
+The complete, presentation-size diagram is maintained in [`README.md`](./README.md#important-uml-class-diagram).
+It includes the key models, role classes, parcel and payment subclasses, core services, managers, persistence classes, and console controllers while omitting repetitive utility and exception classes.
+
+![Courier and Parcel Tracking System UML class diagram](./docs/courier-system-uml.svg)
+
+```mermaid
+classDiagram
+    direction LR
+
+    class AppController
+    class MainMenu
+    class AdminMenu
+    class CustomerMenu
+    class AgentMenu
+
+    class Person {
+        <<abstract>>
+    }
+    class Customer
+    class DeliveryAgent
+    class Admin
+    Person <|-- Customer
+    Person <|-- DeliveryAgent
+    Person <|-- Admin
+
+    class Branch
+    class Parcel {
+        <<abstract>>
+    }
+    class StandardParcel
+    class ExpressParcel
+    class TrackingRecord
+    Parcel <|-- StandardParcel
+    Parcel <|-- ExpressParcel
+    Parcel *-- TrackingRecord
+
+    class Payment
+    class PrepaidPayment
+    class CODPayment
+    Payment <|-- PrepaidPayment
+    Payment <|-- CODPayment
+
+    class ParcelService
+    class TrackingService
+    class DeliveryService
+    class PaymentService
+    class UserService
+    class BranchService
+    class ReportManager
+
+    class ParcelManager
+    class DeliveryManager
+    class UserManager
+    class BranchManager
+    class DataLoader
+    class FileManager
+
+    AppController --> MainMenu
+    AppController --> AdminMenu
+    AppController --> CustomerMenu
+    AppController --> AgentMenu
+    AppController --> DataLoader
+
+    AdminMenu --> UserService
+    AdminMenu --> BranchService
+    AdminMenu --> DeliveryService
+    AdminMenu --> ReportManager
+    CustomerMenu --> ParcelService
+    CustomerMenu --> TrackingService
+    CustomerMenu --> PaymentService
+    AgentMenu --> DeliveryService
+
+    ParcelService --> ParcelManager
+    TrackingService --> ParcelManager
+    DeliveryService --> DeliveryManager
+    DeliveryService --> TrackingService
+    DeliveryService --> PaymentService
+    PaymentService --> ParcelManager
+    ReportManager --> ParcelManager
+    ReportManager --> PaymentService
+    UserService --> UserManager
+    BranchService --> BranchManager
+
+    DataLoader --> FileManager
+    DataLoader --> UserManager
+    DataLoader --> BranchManager
+    DataLoader --> ParcelManager
+    DataLoader --> PaymentService
+
+    Customer "1" -- "0..*" Parcel : books
+    DeliveryAgent "1" -- "0..*" Parcel : assigned to
+    Branch "1" -- "0..*" Parcel : origin/destination
+    DeliveryAgent "1" --> "1" Branch : belongs to
+    Parcel "1" -- "0..1" Payment : has
+```
+
 ## Package responsibilities
 
 - `main/` — Application entry point and dependency wiring.
