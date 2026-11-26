@@ -16,6 +16,7 @@ A beginner-friendly, console-based Java application for booking parcels, trackin
 - [OOP concepts demonstrated](#oop-concepts-demonstrated)
 - [Parcel status transitions](#parcel-status-transitions)
 - [Data files and persistence](#data-files-and-persistence)
+- [Project documents](#project-documents)
 - [Known limitations](#known-limitations)
 
 ## Features
@@ -234,6 +235,15 @@ Runtime data is stored in the `data/` directory, relative to the application's w
 | `agents.txt` | Currently unused; agent records are stored in `users.txt`. |
 
 Rows use `|` between fields, so persisted text values cannot contain that delimiter or line breaks. The application loads data at startup and saves when the user chooses **Save data and exit**. Each data file is replaced atomically; exit through the menu to save the complete current session. Malformed rows, broken parcel references, and file read/write errors are reported rather than silently ignored. The `data/*.txt` files are ignored by Git so local records are not published with source code.
+
+## Project documents
+
+- [`prd.md`](./prd.md) — Goals, roles, functional/non-functional requirements, scope, and acceptance criteria.
+- [`architecture.md`](./architecture.md) — Package boundaries, workflows, persistence, and technical constraints.
+- [`design.md`](./design.md) — Console interaction flows and experience principles.
+- [`rules.md`](./rules.md) — Development and verification conventions.
+- [`tasks.md`](./tasks.md) — Completed work and prioritized project backlog.
+- [`memory.md`](./memory.md) — Durable project facts and working context for future contributors.
 
 ## Known limitations
 
