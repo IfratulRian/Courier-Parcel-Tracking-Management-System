@@ -20,6 +20,7 @@ A beginner-friendly, console-based Java application for booking parcels, trackin
 - [Parcel status transitions](#parcel-status-transitions)
 - [Data files and persistence](#data-files-and-persistence)
 - [Project documents](#project-documents)
+- [Team work distribution](#team-work-distribution)
 - [Known limitations](#known-limitations)
 
 ## Features
@@ -599,6 +600,25 @@ Rows use `|` between fields, so persisted text values cannot contain that delimi
 - [`rules.md`](./rules.md) — Development and verification conventions.
 - [`tasks.md`](./tasks.md) — Completed work and prioritized project backlog.
 - [`memory.md`](./memory.md) — Durable project facts and working context for future contributors.
+
+## Team work distribution
+
+The project is divided into five end-to-end ownership areas. Each owner is responsible for the listed implementation, its validation, and coordinating any interface changes with the other owners. Difficulty indicates the relative size and complexity of the assignment.
+
+| Owner | Difficulty | Area | Main responsibilities and project scope |
+|---|---|---|---|
+| **Rian** | **Hard** | Security, identity, and access control | Own user identity and authentication in `src/model/user/` and `src/service/user/`. Review role checks across the menus and services; strengthen credential handling and account access; define security-focused tests and document safe demo usage. Coordinate any persisted credential format changes with Sami. This is improvement work: the current demo uses plaintext passwords and a fixed administrator account, so do not describe it as production-secure. |
+| **Sami** | **Hard-medium** | Persistence, data integrity, and shared utilities | Own `src/filehandling/`, the persisted `data/*.txt` formats, and startup/load/save behavior. Validate records and references, report file errors clearly, and maintain compatible serialization as the other areas evolve. Own shared helpers in `src/utility/` and application exceptions in `src/exception/`; coordinate changes that affect all modules. |
+| **Atik** | **Medium-easy** | Parcel booking, tracking, and payments | Own parcel and tracking models in `src/model/parcel/`, payment models in `src/model/payment/`, and the parcel/tracking/payment services in `src/service/parcel/` and `src/service/payment/`. Maintain booking validation, pricing, status history and transitions, cancellation, payment lifecycles, and receipts. Coordinate persistence format changes with Sami. |
+| **Imteaz** | **Medium-easy** | Branch, delivery operations, and reports | Own `src/model/branch/`, `src/service/branch/`, `src/service/delivery/`, and `src/service/report/`. Maintain branch and agent operational workflows, parcel assignment, delivery authorization and status processing, and administrative summaries. Coordinate with Rian on role/access checks and Atik on parcel/payment lifecycle rules. |
+| **Sajid** | **Easy** | Console experience, application integration, and quality checks | Own `src/controller/` and application startup/wiring in `src/main/`. Keep menus and prompts consistent with the service APIs, verify the end-to-end customer/admin/agent workflows, and keep setup and usage instructions in this README accurate. Coordinate UI-facing changes with each service owner; report defects to the relevant owner rather than duplicating business rules in menus. |
+
+### Team integration expectations
+
+- Keep business rules in services and domain models; controllers should handle interaction and display.
+- Agree on method signatures and persisted-data changes before merging dependent work. Sami should review any change to `data/*.txt` formats.
+- Each owner should verify their area and provide the team with the command or steps used. Sajid coordinates a clean build and end-to-end smoke check after integration.
+- Changes that cross ownership areas should be discussed with every affected owner; ownership identifies the primary coordinator, not a reason to block collaboration.
 
 ## Known limitations
 
