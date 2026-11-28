@@ -1077,3 +1077,20 @@ Its main limitations are that it is a console demo, passwords are stored in plai
 28. What is the difference between `CANCELLED` and `RETURNED`?
 29. Which operations could benefit from a database transaction?
 30. How would you add a formal test suite for this project?
+
+## 10. What Is New or Special About This Project?
+
+This project is not presented as a completely new courier technology. Its special feature is how it brings several practical courier workflows together in one small Java application and demonstrates the rules behind them:
+
+- **Three role-based workflows:** customers book and track parcels, administrators manage operations, and agents update only their assigned deliveries.
+- **End-to-end parcel lifecycle:** a parcel progresses through explicit states from booking to delivery, cancellation, or return. Invalid transitions are rejected.
+- **Auditable tracking history:** each successful status change records the old and new states, date/time, branch, agent, and comment.
+- **Two parcel pricing models:** Standard and Express parcels calculate charges differently through polymorphism.
+- **Two payment lifecycles:** prepaid payments and COD follow different rules, with COD collected only after delivery and prepaid payments eligible for a refund when cancelled.
+- **Connected operational data:** parcels reference customers, branches, agents, tracking records, and payments, and the loader checks those references when restoring data.
+- **Persistence without a database:** the application validates and saves related data to separate text files, using temporary-file replacement to reduce partial-write risk.
+- **OOP concepts applied to a working example:** abstract classes, inheritance, an interface, overriding, overloading, encapsulation, and custom exceptions support actual application behaviors.
+
+### Short viva answer
+
+“The special part of our project is that it connects the complete parcel workflow rather than only storing parcel details. It supports role-based customer, administrator, and agent actions; category-based pricing; prepaid and COD payment rules; validated parcel status transitions; and a timestamped tracking history. It also persists related data in text files and validates references when loading. It is an educational demonstration, not a claim of a unique or production-ready courier platform.”
